@@ -1,6 +1,4 @@
 process COPY_READS {
-    publishDir "${params.outdir}/${params.gldsAccession}/00-RawData/Fastq",
-        mode: params.publish_dir_mode
     tag "${ meta.id }"
 
     input:
@@ -10,14 +8,15 @@ process COPY_READS {
         tuple val(meta), path("${meta.id}*.gz"), emit: raw_reads
 
     script:
+        def assay_suffix = params.assay_suffix ? params.assay_suffix : "${meta.assay_suffix}"
         if ( meta.paired_end ) {
         """
-        cp -P 1.gz ${meta.id}_R1_raw.fastq.gz
-        cp -P 2.gz ${meta.id}_R2_raw.fastq.gz
+        cp -P 1.gz ${meta.id}${assay_suffix}_R1_raw.fastq.gz
+        cp -P 2.gz ${meta.id}${assay_suffix}_R2_raw.fastq.gz
         """
         } else {
         """
-        cp -P 1.gz ${meta.id}_raw.fastq.gz
+        cp -P 1.gz ${meta.id}${assay_suffix}_raw.fastq.gz
         """
         }
 }

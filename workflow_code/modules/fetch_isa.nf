@@ -1,15 +1,15 @@
 process FETCH_ISA {
+    tag "${osd_accession}_${glds_accession}"
 
-    tag "${params.osdAccession}"
-
-    publishDir "${params.outdir}/${params.gldsAccession}/Metadata",
-        mode: params.publish_dir_mode
-
+    input:
+    val(osd_accession)
+    val(glds_accession)
+    
     output:
-        path "*.zip", emit: isa_archive
+    path "*.zip", emit: isa_archive
 
     script:
     """
-    dpt-get-isa-archive --accession ${ params.osdAccession }
+    fetch_isa.py --osd ${osd_accession} --outdir .
     """
 }

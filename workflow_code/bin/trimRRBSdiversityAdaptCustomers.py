@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from getopt import getopt
 import sys
 import os

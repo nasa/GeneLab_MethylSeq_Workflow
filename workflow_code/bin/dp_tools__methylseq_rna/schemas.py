@@ -26,7 +26,6 @@ runsheet = {
     "methylSeq": pa.DataFrameSchema(
         columns={
             "Original Sample Name": pa.Column(str),
-            "has_ERCC": pa.Column(bool, check_single_value),
             "organism": pa.Column(str, check_single_value),
             "paired_end": pa.Column(bool, check_single_value),
             "read1_path": pa.Column(str),

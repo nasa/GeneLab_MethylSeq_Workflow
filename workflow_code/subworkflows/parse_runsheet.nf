@@ -13,7 +13,12 @@ def get_runsheet_paths(LinkedHashMap row) {
     meta.id = row["Sample Name"]
     meta.organism_sci = row.organism.replaceAll(" ","_").toLowerCase()
     meta.paired_end = row.paired_end.toBoolean()
+    meta.rna = row["Study Assay Measurement Type"] == "RNA methylation profiling"
     meta.rrbs = row["Study Assay Technology Type"] == "Reduced-Representation Bisulfite Sequencing"
+    meta.kit = row.library_kit.replaceAll(" ","_").toLowerCase()
+
+    // Assign assay suffix based on meta.rna
+    meta.assay_suffix = meta.rna ? "_GLRNAMethylSeq" : "_GLMethylSeq"
 
     // Extract factors
     meta.factors = row.findAll { key, value -> 
@@ -32,18 +37,62 @@ def get_runsheet_paths(LinkedHashMap row) {
     return array
 }
 
+def mutate_to_single_end(it) {
+    def new_meta = it[0].clone()  // Create a copy of the meta map
+    new_meta.paired_end = false   // Set paired_end to false
+    return [new_meta, [it[1][0]]] // Return only first read
+}
+
+// Truncate runsheet - Only used for debugging with params.limit_samples_to
+// Only keep the first n sample rows
+process TRUNCATE_RUNSHEET {
+
+    input:
+    path(runsheet)
+    val(limit)
+
+    output:
+    path "${runsheet.baseName}_truncated.csv", emit: truncated_runsheet
+
+    script:
+    """
+    head -n 1 ${runsheet} > ${runsheet.baseName}_truncated.csv
+    if [ ${limit} -gt 0 ]; then
+        tail -n +2 ${runsheet} | head -n ${limit} >> ${runsheet.baseName}_truncated.csv
+    else
+        tail -n +2 ${runsheet} >> ${runsheet.baseName}_truncated.csv
+    fi
+    """
+}
+
 workflow PARSE_RUNSHEET {
     take:
-        ch_runsheet
+        runsheet_path
     
     main:
+        sample_limit = params.limit_samples_to ? params.limit_samples_to : -1 // -1 in take means no limit
+
+        // Only run truncation if there's an actual limit being applied
+        if (sample_limit > 0) {
+            // Create truncated runsheet using the process
+            TRUNCATE_RUNSHEET(runsheet_path, sample_limit)
+            ch_runsheet = TRUNCATE_RUNSHEET.out.truncated_runsheet
+        } else {
+            // Use the original runsheet directly
+            ch_runsheet = runsheet_path
+        }
+
+        // Process samples from the runsheet
         ch_samples = ch_runsheet 
             | splitCsv(header: true)
             | map { row -> get_runsheet_paths(row) }
+            | map{ it -> params.force_single_end ? mutate_to_single_end(it) : it }
+
+        ch_samples | set { ch_samples }
 
         // Validate consistency across samples
         ch_samples
-            .map { meta, reads -> [meta.paired_end, meta.organism_sci] }
+            .map { meta, reads -> [meta.paired_end, meta.organism_sci, meta.rna, meta.rrbs, meta.kit] }
             .unique()
             .count()
             .subscribe { count ->
@@ -59,7 +108,10 @@ workflow PARSE_RUNSHEET {
         ch_samples.take(1) | view { meta, reads -> 
             """${colorCodes.c_bright_green}Autodetected Processing Metadata:
             Paired End: ${meta.paired_end}
-            Organism: ${meta.organism_sci}${colorCodes.c_reset}"""
+            Organism: ${meta.organism_sci}
+            RNA mode: ${meta.rna}
+            RRBS dataset: ${meta.rrbs}
+            Library Kit: ${meta.kit}${colorCodes.c_reset}"""
         }
         // Check that all read files are unique
         ch_samples
@@ -78,4 +130,5 @@ workflow PARSE_RUNSHEET {
 
     emit:
         samples = ch_samples
+        runsheet = ch_runsheet
 }

@@ -1,18 +1,26 @@
 process ISA_TO_RUNSHEET {
-    tag "${params.osdAccession}_${params.gldsAccession}"
-
-    publishDir "${params.outdir}/${params.gldsAccession}/Metadata",
-        mode: params.publish_dir_mode
+    tag "${osd_accession}_${glds_accession}"
 
     input: 
-        path isa_archive
-        path dp_tools_plugin
+    val(osd_accession)
+    val(glds_accession)
+    path(isa_archive)
+    path(dp_tools_plugin)
 
     output:
-        path "*.csv", emit: runsheet
+    path("*.csv"), emit: runsheet
+    path("isa_archive/${isa_archive}")
+    path("versions.yml"), emit: version
 
     script:
     """
-    dpt-isa-to-runsheet --accession ${params.osdAccession} --isa-archive ${isa_archive} --plugin-dir ${dp_tools_plugin}
+    dpt-isa-to-runsheet --accession ${osd_accession} --isa-archive ${isa_archive} --plugin-dir ${dp_tools_plugin}
+
+    # Copy the ISA archive to the output directory
+    mkdir -p isa_archive
+    cp ${isa_archive} isa_archive/
+
+    echo '"${task.process}":' > versions.yml
+    echo "    dp_tools: \$(pip show dp_tools | grep Version | sed 's/Version: //')" >> versions.yml
     """
 }

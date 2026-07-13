@@ -1,10 +1,11 @@
 process GENES_TO_TRANSCRIPTS {
-  storeDir "${ params.derivedStorePath }/BismarkIndices_BT2/${ ref_source }_release${ensemblVersion}/${ meta.organism_sci.capitalize() }"
+  storeDir "${ params.derived_store_path }/Genome_GTF_BED_Files/${ref_source}/${ref_source.toLowerCase().contains('ensembl') ? ref_version + '/' : ''}${organism_sci}"
 
   input:
     path(genome_gtf)
-    val(meta)
-    tuple val(ensemblVersion), val(ref_source) // Used for defining storage location 
+    val(organism_sci) // Used for defining storage location
+    val(ref_source) // Used for defining storage location
+    val(ref_version) // Used for defining storage location
 
   output:
     path("${ genome_gtf.baseName }-gene-to-transcript-map.tsv")

@@ -1,18 +1,14 @@
 process FASTQC {
   // memory and versioning adapted from https://github.com/nf-core/modules/blob/master/modules/nf-core/fastqc/main.nf
   // FastQC performed on reads
-  publishDir "${params.outdir}/${params.gldsAccession}/${params.fastqc_publish_dir}/FastQC_Reports",
-    pattern: '*.{html,zip}',
-    mode: params.publish_dir_mode
   tag "${ meta.id }"
 
   input:
     tuple val(meta), path(reads)
 
   output:
-    tuple val(meta), path("*.html"), emit: html
-    tuple val(meta), path("*.zip") , emit: zip
-    path "versions.yml"            , emit: versions
+    tuple val(meta), path("${ meta.id }*.html"), path("${ meta.id }*.zip") , emit: fastqc
+    path "versions.yml", emit: version
 
   script:
     // Calculate memory per thread (100MB minimum, 10000MB maximum)
@@ -20,10 +16,10 @@ process FASTQC {
     def fastqc_memory = memory_in_mb > 10000 ? 10000 : (memory_in_mb < 100 ? 100 : memory_in_mb)
 
     """
-    fastqc \
-        -o . \
-        -t $task.cpus \
-        --memory $fastqc_memory \
+    fastqc \\
+        -o . \\
+        -t $task.cpus \\
+        --memory $fastqc_memory \\
         $reads
 
     echo '"${task.process}":' > versions.yml

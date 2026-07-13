@@ -1,0 +1,84 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "MethylSeq Runsheet Schema",
+    "description": "Schema for validating MethylSeq processing runsheets",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "Sample Name": {
+                "description": "Sample Name, added as a prefix to sample-specific processed data output files. Should not include spaces or weird characters.",
+                "type": "string",
+                "errorMessage": "'Sample Name' must be specified."
+            },
+            "Study Assay Measurement Type": {
+                "description": "The assay measurement type. Used to determine correct processing mode.",
+                "type": "string",
+                "enum": ["DNA methylation profiling", "RNA methylation profiling"],
+                "errorMessage": "'Study Assay Measurement Type' must be either 'DNA methylation profiling' or 'RNA methylation profiling'."
+            },
+            "Study Assay Technology Type": {
+                "description": "The assay technology type. Used to determine correct processing mode.",
+                "type": "string",
+                "enum": ["Reduced-Representation Bisulfite Sequencing", "Whole Genome Bisulfite Sequencing"],
+                "errorMessage": "'Study Assay Technology Type' must be either 'Reduced-Representation Bisulfite Sequencing' or 'Whole Genome Bisulfite Sequencing'."
+            },
+            "library_kit": {
+                "type": "string",
+                "description": "Indicates which library kit was used to prepare the samples. Used to determine correct processing mode.",
+                "errorMessage": "library_kit must be specified in the runsheet."
+            },
+            "organism": {
+                "type": "string",
+                "description": "Species name used to map to the appropriate gene annotations file.",
+                "errorMessage": "'organism' must be specified in the runsheet."
+            },
+            "paired_end": {
+                "type": "boolean",
+                "description": "Set to True if the samples were sequenced as paired-end. If set to False, samples are assumed to be single-end.",
+                "errorMessage": "paired_end must be specified as true or false in the runsheet."
+            },
+            
+            "read1_path": {
+                "type": "string",
+                "pattern": "^\\S+\\.f(ast)?q\\.gz$",
+                "format": "file-path",
+                "description": "Location of the raw reads file. For paired-end data, this specifies the forward reads fastq.gz file.",
+                "errorMessage": "read1_path must be specified in the runsheet."
+            },
+            "read2_path": {
+                "type": "string",
+                "pattern": "^\\S+\\.f(ast)?q\\.gz$",
+                "format": "file-path",
+                "description": "Location of the raw reads file. For paired-end data, this specifies the reverse reads fastq.gz file. For single-end data, this column should be omitted."
+            },
+            "Original Sample Name": {
+                "description": "Used to map the sample name that will be used for processing to the original sample name. This is often identical except in cases where the original name includes spaces or weird characters."
+            }
+        },
+        "patternProperties": {
+            "^Factor Value\\[.*\\]$": {
+                "type": "string",
+                "description": "Experimental factor values. Column names should be 'Factor Value[factor_name]' where factor_name is the experimental factor (e.g., Spaceflight, Time, Treatment), and values are the corresponding conditions"
+            }
+        },
+        "required": [
+            "Sample Name",
+            "Study Assay Measurement Type",
+            "Study Assay Technology Type",
+            "library_kit",
+            "organism",
+            "paired_end",
+            "read1_path"
+        ],
+        "if": {
+            "properties": {
+                "paired_end": { "const": true }
+            }
+        },
+        "then": {
+            "required": ["read2_path"]
+        },
+        "minItems": 2
+    }
+}

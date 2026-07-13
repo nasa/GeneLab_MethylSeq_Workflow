@@ -1,0 +1,410 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/nasa/GeneLab_MethylSeq_Workflow/main/workflow_code/nextflow_schema.json",
+    "title": "NASA GeneLab Data Processing Methyl-Seq pipeline parameters",
+    "description": "Methyl-Seq Pipeline",
+    "type": "object",
+    "$defs": {
+        "input": {
+            "title": "Input",
+            "type": "object",
+            "fa_icon": "fas fa-terminal",
+            "properties": {
+                "accession": {
+                    "type": "string",
+                    "description": "Input OSD or GLDS identifier as 'OSD-#' or 'GLDS-#' if processing an OSDR dataset.",
+                    "pattern": "^(OSD|GLDS)-[0-9]+$"
+                },
+                "runsheet_path": {
+                    "type": "string",
+                    "description": "Path to the input runsheet.",
+                    "format": "file-path",
+                    "schema": "./config/runsheet_schema.json"
+                },
+                "isa_archive_path": {
+                    "type": "string",
+                    "description": "Path to the ISA.zip for an OSDR dataset. '--accession' must also be used.",
+                    "format": "file-path"
+                },
+                "assay_suffix": {
+                    "type": "string",
+                    "description": "Specifies a string that should be used to label the output file names. If not supplied, workflow sets it to either \"_GLMethylSeq\" or \"_GLRNAMethylSeq\" based on runsheet's metadata"
+                }
+            }
+        },
+        "references": {
+            "title": "References",
+            "type": "object",
+            "description": "By default, reference_table points to GeneLab Reference Annotations Table GL-DPPD-7110-A_annotations.csv which defines reference FASTA and GTF files and associated GeneLab-generated gene annotations.",
+            "default": "",
+            "properties": {
+                "reference_table": {
+                    "type": "string",
+                    "default": "https://raw.githubusercontent.com/nasa/GeneLab_Data_Processing/refs/heads/master/GeneLab_Reference_Annotations/Pipeline_GL-DPPD-7110_Versions/GL-DPPD-7110-A/GL-DPPD-7110-A_annotations.csv",
+                    "description": "GL-DPPD-7110-A_annotations.csv"
+                },
+                "ref_fasta": {
+                    "type": "string",
+                    "description": "Specifies an alternative reference FASTA file to use in place of the one listed in GL-DPPD-7110-A_annotations.csv."
+                },
+                "ref_gtf": {
+                    "type": "string",
+                    "description": "Specifies an alternative reference GTF file to use in place of the one listed in GL-DPPD-7110-A_annotations.csv."
+                },
+                "ref_source": {
+                    "type": "string",
+                    "description": "Specifies the source of the alternative reference files. (e.g. \"ncbi\" or \"ensembl\")."
+                },
+                "ref_version": {
+                    "type": "string",
+                    "description": "Specifies the version of the alternative reference files used, if available."
+                },
+                "gene_annotations_file": {
+                    "type": "string",
+                    "description": "Specifies a gene annotations file to use in place of the one isted in GL-DPPD-7110-A_annotations.csv."
+                }
+            },
+            "required": [
+                "reference_table"
+            ]
+        },
+        "storage": {
+            "title": "Storage",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "properties": {
+                "reference_store_path": {
+                    "type": "string",
+                    "default": "./References",
+                    "description": "Location where the reference fasta and gtf will be stored.",
+                    "format": "directory-path"
+                },
+                "derived_store_path": {
+                    "type": "string",
+                    "default": "./DerivedReferences",
+                    "description": "Location where the derived reference files (Bismark indices, genome annotation files) will be stored.",
+                    "format": "directory-path"
+                }
+            },
+            "required": [
+                "reference_store_path",
+                "derived_store_path"
+            ]
+        },
+        "trimming": {
+            "title": "Trimming",
+            "type": "object",
+            "default": "",
+            "properties": {
+                "clip_r1": {
+                    "type": "integer",
+                    "description": "Specifies number of bases to trim from the 5' end of read 1 (or single-end reads)"
+                },
+                "clip_r2": {
+                    "type": "integer",
+                    "description": "Specifies number of bases to trim from the 5' end of read 2 (paired-end reads only)"
+                },
+                "three_prime_clip_r1": {
+                    "type": "integer",
+                    "description": "Specifies number of bases to trim from the 3' end of read 1 (or single-end reads)"
+                },
+                "three_prime_clip_r2": {
+                    "type": "integer",
+                    "description": "Specifies number of bases to trim from the 3' end of read 2 (paired-end reads only)"
+                }
+            }
+        },
+        "alignment_and_methylation_extraction": {
+            "title": "Alignment and Methylation Extraction",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "properties": {
+                "non_directional": {
+                    "type": "boolean",
+                    "description": "Enable for non-directional bisulfite libraries"
+                },
+                "skip_dedupe": {
+                    "type": "boolean",
+                    "description": "Skip deduplication process"
+                },
+                "ignore_r1": {
+                    "type": "integer",
+                    "description": "Specifies number of bases to ignore from the 5' end of read 1 (or single-end reads) when extracting methylation calls"
+                },
+                "ignore_r2": {
+                    "type": "integer",
+                    "description": "Specifies number of bases to ignore from the 5' end of read 2 (paired-end reads only) when extracting methylation calls"
+                },
+                "ignore_3prime_r1": {
+                    "type": "integer",
+                    "description": "Specifies number of bases to ignore from the 3' end of read 1 (or single-end reads) when extracting methylation calls"
+                },
+                "ignore_3prime_r2": {
+                    "type": "integer",
+                    "description": "Specifies number of bases to ignore from the 3' end of read 1 (paired-end reads only) when extracting methylation calls"
+                }
+            }
+        },
+        "differential_methylation": {
+            "title": "Differential methylation",
+            "type": "object",
+            "description": "",
+            "default": "",
+            "properties": {
+                "methRead_mincov": {
+                    "type": "integer",
+                    "default": 2,
+                    "description": "Specifies the minimum read coverage per cytosine when reading methylation data."
+                },
+                "MethylDiff_difference": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "Specifies the minimum percent methylation difference threshold for differential methylation analysis."
+                },
+                "MethylDiff_qvalue": {
+                    "type": "number",
+                    "default": 0.5,
+                    "description": "Specifies the maximum q-value threshold for differential methylation analysis."
+                },
+                "tileMethylCounts_mincov": {
+                    "type": "integer",
+                    "default": 10,
+                    "description": "Specifies the minimum read coverage per cytosine when summarizing methylation into genomic tiles."
+                },
+                "tileMethylCounts_winsize": {
+                    "type": "integer",
+                    "default": 1000,
+                    "description": "Specifies the genomic tile window size in base pairs."
+                },
+                "tileMethylCounts_stepsize": {
+                    "type": "integer",
+                    "default": 1000,
+                    "description": "Specifies the genomic tile step size in base pairs."
+                }
+            }
+        },
+        "debugging_options": {
+            "title": "Debugging options",
+            "type": "object",
+            "description": "Parameters used to reduce the size of inputs or reference data",
+            "default": "",
+            "properties": {
+                "limit_samples_to": {
+                    "type": "integer",
+                    "description": "Only use the first n samples for the analysis"
+                },
+                "force_single_end": {
+                    "type": "boolean",
+                    "description": "Only use Read 1 for each sample, even if the original data is paired-end."
+                },
+                "truncate_to": {
+                    "type": "integer",
+                    "description": "Only use the specified number of reads from each input file."
+                },
+                "dp_tools_plugin": {
+                    "type": "string",
+                    "description": "Alternative dp_tools plugin."
+                }
+            }
+        },
+        "post_processing_params": {
+            "title": "Post-processing parameters",
+            "type": "object",
+            "description": "Nested parameters for post-processing validation of OSDR datasets.",
+            "properties": {
+                "post_processing": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "default": "First M. Last",
+                            "description": "Name of the analyst."
+                        },
+                        "email": {
+                            "type": "string",
+                            "default": "NASA@nasa.gov",
+                            "description": "Email of the analyst."
+                        },
+                        "protocol_id": {
+                            "type": "string",
+                            "default": "GL-DPPD-7113",
+                            "description": "GeneLab pipeline document protocol ID."
+                        },
+                        "osd_accession": {
+                            "type": "string",
+                            "description": "OSD accession number (e.g. 'OSD-47').",
+                            "pattern": "^OSD-[0-9]+$"
+                        },
+                        "glds_accession": {
+                            "type": "string",
+                            "description": "GLDS accession number (e.g. 'GLDS-47').",
+                            "pattern": "^GLDS-[0-9]+$"
+                        },
+                        "include_raw_data": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Enable to include raw files in README and validation, and generate raw md5sum and protocol."
+                        },
+                        "merged_raw_data": {
+                            "type": "boolean",
+                            "default": false,
+                            "description": "Enable to note that raw data was merged in raw data protocol."
+                        }
+                    },
+                    "required":[
+                        "name", 
+                        "email", 
+                        "protocol_id", 
+                        "osd_accession", 
+                        "glds_accession"
+                    ]
+                }
+            }
+        },
+        "library_presets": {
+            "title": "Library Presets",
+            "type": "object",
+            "description": "Pre-configured trimming and alignment parameters for common bisulfite library kits.",
+            "properties": {
+                "library_presets": {
+                    "type": "object",
+                    "properties": {
+                        "pbat": {
+                            "type": "object",
+                            "description": "Pre-configured parameters for Post-Bisulfite Adapter Tagging (PBAT) libraries.",
+                            "properties": {
+                                "clip_r1":             { "type": "integer", "default": 6 },
+                                "clip_r2":             { "type": "integer", "default": 9 },
+                                "three_prime_clip_r1": { "type": "integer", "default": 6 },
+                                "three_prime_clip_r2": { "type": "integer", "default": 9 }
+                            }
+                        },
+                        "em-seq": {
+                            "type": "object",
+                            "description": "Pre-configured parameters for Enzymatic Methyl-seq (EM-seq) libraries.",
+                            "properties": {
+                                "clip_r1":             { "type": "integer", "default": 10 },
+                                "clip_r2":             { "type": "integer", "default": 10 },
+                                "three_prime_clip_r1": { "type": "integer", "default": 10 },
+                                "three_prime_clip_r2": { "type": "integer", "default": 10 }
+                            }
+                        },
+                        "bs-seq": {
+                            "type": "object",
+                            "description": "Pre-configured parameters for standard bisulfite sequencing (BS-seq) libraries.",
+                            "properties": {
+                                "ignore_r2": { "type": "integer", "default": 2 }
+                            }
+                        },
+                        "zymo": {
+                            "type": "object",
+                            "description": "Pre-configured parameters for Zymo Pico Methyl-seq libraries.",
+                            "properties": {
+                                "clip_r1":             { "type": "integer", "default": 10 },
+                                "clip_r2":             { "type": "integer", "default": 10 },
+                                "three_prime_clip_r1": { "type": "integer", "default": 10 },
+                                "three_prime_clip_r2": { "type": "integer", "default": 10 },
+                                "non_directional":     { "type": "boolean", "default": true }
+                            }
+                        },
+                        "nugen": {
+                            "type": "object",
+                            "description": "Pre-configured parameters for NuGEN Ovation Methyl-seq libraries.",
+                            "properties": {
+                                "ignore_r2": { "type": "integer", "default": 2 }
+                            }
+                        },
+                        "accel": {
+                            "type": "object",
+                            "description": "Pre-configured parameters for Swift Accel-NGS Methyl-seq libraries.",
+                            "properties": {
+                                "clip_r1":             { "type": "integer", "default": 10 },
+                                "clip_r2":             { "type": "integer", "default": 15 },
+                                "three_prime_clip_r1": { "type": "integer", "default": 10 },
+                                "three_prime_clip_r2": { "type": "integer", "default": 10 }
+                            }
+                        },
+                        "epignome": {
+                            "type": "object",
+                            "description": "Pre-configured parameters for Illumina Epicentre EpiGnome/TrueMethyl libraries.",
+                            "properties": {
+                                "clip_r1":             { "type": "integer", "default": 8 },
+                                "clip_r2":             { "type": "integer", "default": 8 },
+                                "three_prime_clip_r1": { "type": "integer", "default": 8 },
+                                "three_prime_clip_r2": { "type": "integer", "default": 8 }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "allOf": [
+        {
+            "$ref": "#/$defs/input"
+        },
+        {
+            "$ref": "#/$defs/references"
+        },
+        {
+            "$ref": "#/$defs/storage"
+        },
+        {
+            "$ref": "#/$defs/trimming"
+        },
+        {
+            "$ref": "#/$defs/alignment_and_methylation_extraction"
+        },
+        {
+            "$ref": "#/$defs/differential_methylation"
+        },
+        {
+            "$ref": "#/$defs/debugging_options"
+        },
+        {
+            "$ref": "#/$defs/post_processing_params"
+        },
+        {
+            "$ref": "#/$defs/library_presets"
+        }
+    ],
+    "properties": {
+        "outdir": {
+            "type": "string",
+            "format": "directory-path",
+            "description": "The output directory where the results will be saved. You have to use absolute paths to storage on Cloud infrastructure.",
+            "fa_icon": "fas fa-folder-open",
+            "default": "results"
+        },
+        "api_url": {
+            "type": "string",
+            "default": "https://visualization.osdr.nasa.gov/biodata/api/v2/dataset/*/",
+            "hidden": true
+        },
+        "publish_dir_mode": {
+            "type": "string",
+            "default": "link",
+            "hidden": true,
+            "description": "Nextflow publishdir mode.",
+            "enum": [
+                "copy",
+                "copyNoFollow",
+                "link",
+                "move",
+                "relink",
+                "symlink"
+            ]
+        },
+        "multiqc_config": {
+            "type": "string",
+            "default": "${projectDir}/config/multiqc.config",
+            "description": "Path to the MultiQC config file.",
+            "format": "file-path"
+        }
+    },
+    "required": [
+        "outdir"
+    ]
+}

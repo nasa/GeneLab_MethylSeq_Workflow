@@ -1,6 +1,6 @@
 process NUGEN {
   // Stages the raw reads into appropriate publish directory
-  publishDir "${params.outdir}/${params.gldsAccession}/01-TrimFilter/Fastq",
+  publishDir "${params.outdir}/Trimmed_Sequence_Data",
       pattern: "*trimmed.fastq.gz",
       mode: params.publish_dir_mode
   tag "${ meta.id }"
@@ -8,24 +8,27 @@ process NUGEN {
 
   input:
     tuple val(meta), path("input/*")
-    path("trimRRBSdiversityAdaptCustomers.py")
 
   output:
     tuple val(meta), path("${ meta.id }*trimmed.fastq.gz"), emit: reads
 
+  when:
+    meta.kit == "nugen"
+
   script:
+    def assay_suffix = params.assay_suffix ? params.assay_suffix : "${meta.assay_suffix}"
     if (meta.paired_end) {
     """
-    python trimRRBSdiversityAdaptCustomers.py -1 input/${ meta.id }_R1_trimmed.fastq.gz -2 input/${ meta.id }_R2_trimmed.fastq.gz
+    trimRRBSdiversityAdaptCustomers.py -1 input/${ meta.id }${ assay_suffix }_R1_trimmed.fastq.gz -2 input/${ meta.id }${ assay_suffix }_R2_trimmed.fastq.gz
 
-    mv input/${ meta.id }_R1_trimmed.fastq_trimmed.fq.gz ${ meta.id }_R1_trimmed.fastq.gz
-    mv input/${ meta.id }_R2_trimmed.fastq_trimmed.fq.gz ${ meta.id }_R2_trimmed.fastq.gz
+    mv input/${ meta.id }${ assay_suffix }_R1_trimmed.fastq_trimmed.fq.gz ${ meta.id }${ assay_suffix }_R1_trimmed.fastq.gz
+    mv input/${ meta.id }${ assay_suffix }_R2_trimmed.fastq_trimmed.fq.gz ${ meta.id }${ assay_suffix }_R2_trimmed.fastq.gz
     """
     } else {
     """
-    python trimRRBSdiversityAdaptCustomers.py -1 input/${ meta.id }_trimmed.fastq.gz
+    trimRRBSdiversityAdaptCustomers.py -1 input/${ meta.id }${ assay_suffix }_trimmed.fastq.gz
 
-    mv input/${ meta.id }_trimmed.fastq_trimmed.fq.gz ${ meta.id }_trimmed.fastq.gz
+    mv input/${ meta.id }${ assay_suffix }_trimmed.fastq_trimmed.fq.gz ${ meta.id }${ assay_suffix }_trimmed.fastq.gz
     """
     }
     
